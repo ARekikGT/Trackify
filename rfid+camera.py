@@ -1,6 +1,7 @@
 import RPi.GPIO as GPIO
 from mfrc522 import SimpleMFRC522
 import time
+import cv2
 
 # Désactiver les avertissements
 GPIO.setwarnings(False)
@@ -28,12 +29,10 @@ AUTHORIZED_STUDENTS = ['2233445566']
 
 # Fonction pour vérifier la distance avec le capteur ultrason
 def check_ultrasonic():
-    # Envoi d'un signal
     GPIO.output(ULTRASONIC_TRIG, True)
     time.sleep(0.00001)
     GPIO.output(ULTRASONIC_TRIG, False)
 
-    # Mesure du temps de retour
     start_time = time.time()
     stop_time = time.time()
 
@@ -43,7 +42,6 @@ def check_ultrasonic():
     while GPIO.input(ULTRASONIC_ECHO) == 1:
         stop_time = time.time()
 
-    # Calcul de la distance
     elapsed_time = stop_time - start_time
     distance = (elapsed_time * 34300) / 2  # Distance en cm
     return distance
@@ -51,21 +49,39 @@ def check_ultrasonic():
 # Fonction pour ouvrir la porte
 def open_door():
     print("Ouverture de la porte...")
-    GPIO.output(RELAY_PIN, GPIO.HIGH)  # Active le relais pour ouvrir la porte
-
-# Fonction pour ouvrir la porte
-def close_door():
-    GPIO.output(RELAY_PIN, GPIO.LOW)  # Désactiver le relais pour fermer la porte
+    GPIO.output(RELAY_PIN, GPIO.HIGH)
+    time.sleep(5)
+    GPIO.output(RELAY_PIN, GPIO.LOW)
     print("Porte fermée.")
+
+# Fonction pour activer la caméra
+def activate_camera():
+    print("Activation de la caméra...")
+    camera = cv2.VideoCapture(0)  # Index 0 pour la caméra par défaut
+    try:
+        while True:
+            ret, frame = camera.read()
+            if not ret:
+                print("Erreur de lecture de la caméra.")
+                break
+            cv2.imshow("Flux vidéo", frame)
+
+            # Quitter la caméra si 'q' est pressé
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                print("Fermeture de la caméra.")
+                break
+    finally:
+        camera.release()
+        cv2.destroyAllWindows()
 
 # Fonction principale
 def main():
     try:
         while True:
             print("En attente d'une personne devant la porte...")
-            # Vérifie la présence d'une personne avec le capteur ultrason
             distance = check_ultrasonic()
-            if distance < 50:  # Si une personne est détectée à moins de 50 cm
+            activate_camera()
+            if distance < 50:  # Si une personne est détectée
                 print(f"Personne détectée à {distance:.2f} cm. En attente d'une carte RFID...")
 
                 # Lecture de la carte RFID
@@ -76,20 +92,18 @@ def main():
                 if str(id) in AUTHORIZED_TEACHERS:
                     print("Accès autorisé : enseignant.")
                     open_door()
-                    time.sleep(5)
-                    if str(id) in AUTHORIZED_TEACHERS:
-                        close_door()
+                      # Activer la caméra après ouverture
                 elif str(id) in AUTHORIZED_STUDENTS:
                     print("Accès refusé : étudiant.")
                 else:
                     print("Accès refusé : carte non reconnue.")
             else:
                 print(f"Aucune personne détectée (distance : {distance:.2f} cm).")
-            time.sleep(1)  # Pause pour éviter une surcharge de la boucle
+            time.sleep(1)
     except KeyboardInterrupt:
         print("Arrêt du programme.")
     finally:
-        GPIO.cleanup()  # Nettoyage des GPIO à la fin
+        GPIO.cleanup()
 
 # Exécution du programme
 if __name__ == "__main__":
