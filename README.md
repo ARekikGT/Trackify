@@ -71,37 +71,6 @@ The system ensures:
 - **RPi.GPIO**: Controls GPIO pins on the Raspberry Pi.  
 
 ---
-
-## System Architecture  
-
-The system follows a **modular and scalable architecture**:  
-
-```plaintext
-+--------------------+          +-------------------+          +----------------------+
-|   Ultrasonic       |          |     RFID Reader   |          |    Camera Module     |
-|    Sensor          |          |    (MFRC522)      |          |   (Hikvision 1080p)  |
-+--------------------+          +-------------------+          +----------------------+
-          |                                |                               |
-          |                                |                               |
-          +-------------+------------------+---------------+---------------+
-                        | Raspberry Pi 4 (Central Hub)      |
-                        +-----------------------------------+
-                        |  Facial Recognition (OpenCV)      |
-                        |  Data Processing (Python)         |
-                        |  Attendance Logs (SQLite)         |
-                        |  WhatsApp API Notifications       |
-                        +-----------------------------------+
-                                  |
-                                  v
-                        +------------------------+
-                        | Dashboards (Admin UI)  |
-                        | User Management        |
-                        | Attendance Analytics   |
-                        +------------------------+
-
-
----
-
 ## Installation Instructions  
 
 ### Prerequisites  
@@ -185,7 +154,7 @@ Copier le code
 
 ### Step 1: Clone the Repository  
 Run the following command on your Raspberry Pi:  
-```bash
+
 git clone https://github.com/your-repo-name/trackify.git
 cd trackify
 Step 2: Install Dependencies
@@ -244,6 +213,37 @@ Trackify/
 
 ---
 
+
+## System Architecture  
+
+The system follows a **modular and scalable architecture**:  
+
+
++--------------------+          +-------------------+          +----------------------+
+|   Ultrasonic       |          |     RFID Reader   |          |    Camera Module     |
+|    Sensor          |          |    (MFRC522)      |          |   (Hikvision 1080p)  |
++--------------------+          +-------------------+          +----------------------+
+          |                                |                               |
+          |                                |                               |
+          +-------------+------------------+---------------+---------------+
+                        | Raspberry Pi 4 (Central Hub)      |
+                        +-----------------------------------+
+                        |  Facial Recognition (OpenCV)      |
+                        |  Data Processing (Python)         |
+                        |  Attendance Logs (SQLite)         |
+                        |  WhatsApp API Notifications       |
+                        +-----------------------------------+
+                                  |
+                                  v
+                        +------------------------+
+                        | Dashboards (Admin UI)  |
+                        | User Management        |
+                        | Attendance Analytics   |
+                        +------------------------+
+
+---
+
+
 ## Future Enhancements  
 
 1. **Mobile App Integration**: Access attendance records via mobile apps.  
@@ -270,7 +270,6 @@ This project is licensed under the **MIT License**.
 ---
 
 This is clean and perfectly formatted with proper headings, code blocks, and markdown styling. Let me know if you need further adjustments! 🚀
-
 
 
 
