@@ -1,156 +1,275 @@
-# Import necessary libraries
-import RPi.GPIO as GPIO
-from mfrc522 import SimpleMFRC522
-import cv2
-import time
+# Trackify: Smart Attendance and Engagement System  
 
-# Constants for GPIO pins
-ULTRASONIC_TRIG = 23
-ULTRASONIC_ECHO = 24
+**"Stay On Track, Stay Engaged!"**  
 
-# Authorized users
-AUTHORIZED_TEACHERS = ['123456789', '987654321', '462945141832']
-AUTHORIZED_STUDENTS = ['2233445566']
+---
 
-# RFID Reader setup
-reader = SimpleMFRC522()
+## Project Overview  
+**Trackify** is an innovative **smart attendance system** designed to automate attendance tracking and optimize classroom engagement using **IoT hardware** and **AI-powered tools**. It addresses the limitations of traditional attendance systems by integrating **RFID authentication**, **Facial Recognition**, and **Ultrasonic Sensors** with a user-friendly dashboard and real-time notifications.
 
-# Initialize GPIO
-GPIO.setwarnings(False)
-GPIO.setmode(GPIO.BCM)
-GPIO.setup(ULTRASONIC_TRIG, GPIO.OUT)
-GPIO.setup(ULTRASONIC_ECHO, GPIO.IN)
+The system ensures:  
+- Accurate attendance logging.  
+- Energy-efficient classroom resource management.  
+- Real-time analytics for students, professors, and administrators.  
 
-# Function to check proximity using ultrasonic sensor
-def check_ultrasonic():
-    GPIO.output(ULTRASONIC_TRIG, True)
-    time.sleep(0.00001)
-    GPIO.output(ULTRASONIC_TRIG, False)
+---
 
-    start_time = time.time()
-    stop_time = time.time()
+## Table of Contents  
+- [Key Features](#key-features)  
+- [System Components](#system-components)  
+- [System Architecture](#system-architecture)  
+- [Installation Instructions](#installation-instructions)  
+- [Usage](#usage)  
+- [Project Structure](#project-structure)  
+- [How It Works](#how-it-works)  
+- [Demonstration](#demonstration)  
+- [Future Enhancements](#future-enhancements)  
+- [Contributors](#contributors)  
+- [License](#license)  
 
-    # Save StartTime
-    while GPIO.input(ULTRASONIC_ECHO) == 0:
-        start_time = time.time()
+---
 
-    # Save time of arrival
-    while GPIO.input(ULTRASONIC_ECHO) == 1:
-        stop_time = time.time()
+## Key Features  
 
-    # Calculate distance
-    time_elapsed = stop_time - start_time
-    distance = (time_elapsed * 34300) / 2
-    return distance
+1. **Ultrasonic Proximity Detection**  
+   - Detects individuals within a specified range (~50 cm) to activate the attendance system.  
 
-# Function for RFID authentication
-def rfid_authentication():
-    try:
-        print("Waiting for RFID card...")
-        id, text = reader.read()
-        print(f"Card scanned with UID: {id}")
-        if str(id) in AUTHORIZED_TEACHERS:
-            print("Access granted: Teacher.")
-            return "teacher"
-        elif str(id) in AUTHORIZED_STUDENTS:
-            print("Access granted: Student.")
-            return "student"
-        else:
-            print("Access denied!")
-            return "denied"
-    finally:
-        GPIO.cleanup()
+2. **RFID Authentication**  
+   - Provides a quick and secure check-in process for students and professors using RFID tags.  
 
-# Function for facial recognition
-def facial_recognition():
-    print("Initializing facial recognition...")
-    face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
-    cap = cv2.VideoCapture(0)
+3. **Facial Recognition**  
+   - Secondary authentication method using OpenCV for face detection and recognition.  
 
-    while True:
-        ret, frame = cap.read()
-        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        faces = face_cascade.detectMultiScale(gray, 1.1, 4)
+4. **Classroom Resource Management**  
+   - Automates **electrical resource control** (e.g., lights and power outlets) using a dual-relay card.  
 
-        for (x, y, w, h) in faces:
-            cv2.rectangle(frame, (x, y), (x+w, y+h), (255, 0, 0), 2)
-            print("Face detected!")
-            cap.release()
-            cv2.destroyAllWindows()
-            return True
+5. **Real-Time Notifications**  
+   - Sends pre-class reminders and attendance summaries via the **WhatsApp API**.  
 
-        cv2.imshow('Facial Recognition', frame)
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
+6. **Data Storage and Visualization**  
+   - Attendance and engagement data are stored in an **SQLite database** and displayed on intuitive dashboards.  
 
-    cap.release()
-    cv2.destroyAllWindows()
-    return False
+7. **User-Specific Dashboards**  
+   - Tailored dashboards for administrators, professors, and students for data-driven decision-making.  
 
-# Main function
-def main():
-    print("Starting Trackify system...")
+---
 
-    while True:
-        distance = check_ultrasonic()
-        if distance < 50:  # If a person is detected nearby
-            print(f"Person detected at {distance:.2f} cm. Waiting for RFID card...")
-            user_role = rfid_authentication()
+## System Components  
 
-            if user_role == "denied":
-                print("Access denied. System reset.")
-                continue
+### Hardware  
+- **Raspberry Pi 4**: Main processor handling all tasks.  
+- **Ultrasonic Sensor (HC-SR04)**: Detects proximity to trigger the system.  
+- **RFID Reader (MFRC522)**: Scans user RFID tags.  
+- **Hikvision 1080p Camera**: Captures facial images for recognition.  
+- **Dual-Relay Card**: Controls classroom electrical devices for energy efficiency.  
 
-            if facial_recognition():
-                print(f"Attendance marked for {user_role}.")
-            else:
-                print("Facial recognition failed. Access denied.")
+### Software  
+- **Python**: Core programming language for hardware interaction and AI logic.  
+- **OpenCV**: Library for facial detection and recognition.  
+- **SQLite**: Lightweight database for attendance logs.  
+- **WhatsApp API**: Sends real-time notifications.  
+- **RPi.GPIO**: Controls GPIO pins on the Raspberry Pi.  
 
-        time.sleep(1)
+---
 
-# Run the system
-if __name__ == "__main__":
-    main()
+## System Architecture  
+
+The system follows a **modular and scalable architecture**:  
+
+```plaintext
++--------------------+          +-------------------+          +----------------------+
+|   Ultrasonic       |          |     RFID Reader   |          |    Camera Module     |
+|    Sensor          |          |    (MFRC522)      |          |   (Hikvision 1080p)  |
++--------------------+          +-------------------+          +----------------------+
+          |                                |                               |
+          |                                |                               |
+          +-------------+------------------+---------------+---------------+
+                        | Raspberry Pi 4 (Central Hub)      |
+                        +-----------------------------------+
+                        |  Facial Recognition (OpenCV)      |
+                        |  Data Processing (Python)         |
+                        |  Attendance Logs (SQLite)         |
+                        |  WhatsApp API Notifications       |
+                        +-----------------------------------+
+                                  |
+                                  v
+                        +------------------------+
+                        | Dashboards (Admin UI)  |
+                        | User Management        |
+                        | Attendance Analytics   |
+                        +------------------------+
 
 
+---
 
-Key Features Integrated:
-Ultrasonic Sensor:
+## Installation Instructions  
 
-Detects nearby individuals.
-Triggers RFID and facial recognition systems.
-RFID Reader:
+### Prerequisites  
+- **Raspberry Pi 4** (or similar single-board computer) with Raspbian OS installed.  
+- **Python 3.x** installed.  
+- Hardware components:  
+  - RFID Reader (MFRC522)  
+  - Ultrasonic Sensor (HC-SR04)  
+  - Hikvision 1080p Camera  
+  - Dual-Relay Card  
 
-Identifies users as teachers or students.
-Grants or denies access based on preloaded UIDs.
-Facial Recognition:
+### Step 1: Clone the Repository  
+Run the following command on your Raspberry Pi:
+bash:
+git clone https://github.com/your-repo-name/trackify.git
+cd trackify
 
-Confirms the identity of users detected via RFID.
-Uses OpenCV for facial detection.
-Attendance Management:
+### Step 2: Install Dependencies
+Install all required libraries using pip:
+bash:
+pip install opencv-python RPi.GPIO mfrc522 twilio sqlite3 matplotlib 
 
-Logs attendance if both RFID and facial recognition succeed.
+###Step 3: Connect Hardware Components
+
+* Connect the ultrasonic sensor, RFID reader, and dual-relay card to the GPIO pins on the Raspberry Pi.
+* Connect the Hikvision Camera to the Raspberry Pi via USB.
+
+###Step 4: Run the System
+Execute the main script:
+bash:
+python src/trackify_main.py
 
 
-
-
+###Usage
+####RFID Authentication
+* Place your RFID tag on the reader.
+* If verified, attendance is logged.
+####Facial Recognition
+* If RFID is unavailable, facial recognition is triggered.
+* Look into the camera to confirm attendance.
+####Classroom Resource Management
+* Upon professor check-in, lights and power are activated.
+* Resources are turned off automatically when the professor checks out.
+####Notifications
+* Students receive reminders 5 minutes before class via WhatsApp.
+##Project Structure
 Trackify/
 ├── src/
-│   ├── trackify_main.py       # Main integrated script
-├── docs/
-│   ├── architecture.png       # System architecture diagram
-│   ├── chatbot-demo.png       # Chatbot screenshots
-│   ├── dashboards/            # Dashboards images
+│   ├── trackify_main.py          # Main program logic
+│   ├── rfid_reader.py            # Handles RFID scanning
+│   ├── facial_recognition.py     # Facial recognition logic
+│   ├── ultrasonic_sensor.py      # Proximity detection
+│   ├── resource_manager.py       # Controls dual-relay card
 ├── database/
-│   ├── attendance.db          # SQLite database for logging attendance
-├── README.md                  # Project documentation
+│   ├── attendance.db             # SQLite database for attendance
+├── docs/
+│   ├── architecture.png          # System architecture diagram
+│   ├── hardware_setup.png        # Hardware connections
+│   ├── dashboards/               # Dashboard screenshots
+├── requirements.txt              # Required libraries
+├── README.md                     # Documentation
 
 
+##
+Here is the code for the requested part with the updated section:
 
-pip install opencv-python RPi.GPIO mfrc522
+markdown
+Copier le code
+---
 
-python trackify_main.py
+## Installation Instructions  
 
+### Prerequisites  
+- **Raspberry Pi 4** (or similar single-board computer) with Raspbian OS installed.  
+- **Python 3.x** installed.  
+- Hardware components:  
+  - RFID Reader (MFRC522)  
+  - Ultrasonic Sensor (HC-SR04)  
+  - Hikvision 1080p Camera  
+  - Dual-Relay Card  
+
+### Step 1: Clone the Repository  
+Run the following command on your Raspberry Pi:  
+```bash
+git clone https://github.com/your-repo-name/trackify.git
+cd trackify
+Step 2: Install Dependencies
+Install all required libraries using pip:
+
+bash
+Copier le code
+pip install opencv-python RPi.GPIO mfrc522 twilio sqlite3 matplotlib
+Step 3: Connect Hardware Components
+Connect the ultrasonic sensor, RFID reader, and dual-relay card to the GPIO pins on the Raspberry Pi.
+Connect the Hikvision Camera to the Raspberry Pi via USB.
+Step 4: Run the System
+Execute the main script:
+
+bash
+Copier le code
+python src/trackify_main.py
+Usage
+RFID Authentication
+Place your RFID tag on the reader.
+If verified, attendance is logged.
+Facial Recognition
+If RFID is unavailable, facial recognition is triggered.
+Look into the camera to confirm attendance.
+Classroom Resource Management
+Upon professor check-in, lights and power are activated.
+Resources are turned off automatically when the professor checks out.
+Notifications
+Students receive reminders 5 minutes before class via WhatsApp.
+Project Structure
+plaintext
+Copier le code
+Trackify/
+├── src/
+│   ├── trackify_main.py          # Main program logic
+│   ├── rfid_reader.py            # Handles RFID scanning
+│   ├── facial_recognition.py     # Facial recognition logic
+│   ├── ultrasonic_sensor.py      # Proximity detection
+│   ├── resource_manager.py       # Controls dual-relay card
+├── database/
+│   ├── attendance.db             # SQLite database for attendance
+├── docs/
+│   ├── architecture.png          # System architecture diagram
+│   ├── hardware_setup.png        # Hardware connections
+│   ├── dashboards/               # Dashboard screenshots
+├── requirements.txt              # Required libraries
+├── README.md                     # Documentation
+
+
+#How It Works:
+###System Activation: The ultrasonic sensor detects proximity and activates the system.
+###RFID and Facial Recognition: Users scan their RFID tags or use facial recognition for attendance.
+###Data Logging: Attendance data is stored in the SQLite database.
+###Notifications: WhatsApp API sends class reminders and updates.
+###Resource Control: Lights and power are managed to optimize energy usage.
+
+---
+
+## Future Enhancements  
+
+1. **Mobile App Integration**: Access attendance records via mobile apps.  
+2. **Cloud Integration**: Migrate data to a cloud-based database for scalability.  
+3. **Emotion Detection**: Assess student engagement using facial expression analysis.  
+4. **Energy Optimization**: Enhance IoT controls for resource management.  
+
+---
+
+## Contributors  
+
+- **Ahmed Rekik**  
+- **Wael Baccouche**  
+- **Nabil Chelly**  
+- **Skander Amira**  
+- **Younes Farah**  
+
+---
+
+## License  
+
+This project is licensed under the **MIT License**.  
+
+---
+
+This is clean and perfectly formatted with proper headings, code blocks, and markdown styling. Let me know if you need further adjustments! 🚀
 
 
 
